@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>测一测，TA是不是也在偷偷喜欢你</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto}
+body{background:#fff6f9;color:#333;padding:0;margin:0}
+.page{display:none;padding:24px;max-width:480px;margin:0 auto}
+.page.active{display:block}
+.home{text-align:center;padding-top:60px}
+.home h1{font-size:26px;color:#d84b86;margin-bottom:8px}
+.home .sub{color:#888;font-size:15px;margin-bottom:32px}
+.tags{text-align:left;display:inline-block;margin-bottom:40px}
+.tag-item{display:flex;gap:8px;align-items:center;margin:14px 0;font-size:15px}
+.tag-item span{color:#d84b86;font-weight:bold}
+.btn{width:100%;background:#d84b86;color:#fff;border:none;border-radius:99px;padding:14px;font-size:17px;margin-top:16px;cursor:pointer}
+.tip-small{margin-top:24px;font-size:13px;color:#aaa}
+.quiz .q-num{color:#d84b86;font-size:14px}
+.quiz .q-text{font-size:18px;margin:12px 0 24px;font-weight:500}
+.opt{border:1px solid #f2d8e4;border-radius:12px;padding:14px;margin:10px 0;text-align:left;background:#fff;cursor:pointer}
+.opt.selected{background:#ffe8f1;border-color:#d84b86}
+.nav-row{display:flex;gap:12px;margin-top:30px}
+.nav-row button{flex:1;padding:13px;border-radius:99px;border:none;font-size:16px;cursor:pointer}
+#prev{background:#eee;color:#555}
+#next{background:#d84b86;color:#fff}
+.progress{height:6px;background:#f2d8e4;border-radius:99;margin-bottom:20px;overflow:hidden}
+.progress>div{height:100%;background:#d84b86;transition:0.3s}
+.result{text-align:center;padding-top:40px}
+.result .type-name{font-size:24px;color:#d84b86;font-weight:bold;margin-bottom:16px}
+.result .desc{line-height:1.7;color:#555;font-size:16px;margin-bottom:32px}
+</style>
+</head>
+<body>
+
+<div class="page home active" id="page-home">
+  <h1>测一测，TA是不是也在偷偷喜欢你</h1>
+  <p class="sub">凭你的心动细节，匹配 TA 的真实心意</p>
+  <div class="tags">
+    <div class="tag-item"><span>✅</span>心动细节｜每个举动都有答案</div>
+    <div class="tag-item"><span>✅</span>聊天温度｜回复速度藏着态度</div>
+    <div class="tag-item"><span>✅</span>暧昧浓度｜你们现在到哪一步</div>
+    <div class="tag-item"><span>✅</span>心意解读｜TA 心里到底怎么看你</div>
+  </div>
+  <button class="btn" onclick="startQuiz()">点击测试 →</button>
+  <p class="tip-small">趣味测试仅供娱乐，别拿结果去质问他</p>
+</div>
+
+<div class="page quiz" id="page-quiz">
+  <div class="progress"><div id="bar"></div></div>
+  <p class="q-num" id="qnum"></p>
+  <p class="q-text" id="qtext"></p>
+  <div id="opts-wrap"></div>
+  <div class="nav-row">
+    <button id="prev" onclick="prevQuestion()">上一题</button>
+    <button id="next" onclick="nextQuestion()">下一题</button>
+  </div>
+</div>
+
+<div class="page result" id="page-result">
+  <h2 class="type-name" id="res-title"></h2>
+  <div class="desc" id="res-desc"></div>
+  <button class="btn" onclick="resetAll()">重新测试</button>
+  <p class="tip-small">趣味测试仅供娱乐，别拿结果去质问他</p>
+</div>
+
+<script>
+const resultMap = {
+  a:{title:"双向奔赴型",desc:"你俩就差一个人先开口！两个人心里都装着对方，所有的试探和主动都是双向的信号，只差一点点勇气，很容易捅破窗户纸，甜甜的恋爱就在眼前✨"},
+  b:{title:"偷偷暗恋型",desc:"TA也喜欢你，只是不敢说。TA会悄悄留意你的动态、默默关注你，但是性格害羞胆怯，害怕说出口之后连现在的关系都失去，在等更稳妥的时机。"},
+  c:{title:"友达以上型",desc:"再靠近一点就变味了！好感已经远超普通朋友，相处松弛又舒服，暧昧氛围拉满，只差一次升温机会，很容易跨过朋友这条线。"},
+  d:{title:"慢热观望型",desc:"有感觉，但还在观察你。TA对你印象不错，愿意和你相处，但是TA很谨慎，需要更多时间慢慢了解，不会轻易交付心意。"},
+  e:{title:"故作镇定型",desc:"嘴上说没有，身体很诚实。嘴上会嘴硬、假装淡定不在意，但是下意识的小动作、下意识的偏爱藏不住，行动永远比话术诚实。"},
+  f:{title:"纯友谊型",desc:"TA真的只把你当朋友。和你相处很舒服，愿意和你聊天玩耍，但心动信号为零，只珍惜舒服的朋友关系，没有恋爱想法。"},
+  g:{title:"暧昧拉扯型",desc:"享受这个过程，就是不表态。TA很喜欢和你这种暧昧的氛围感，喜欢被在意的感觉，但暂时不想确定关系，享受不用负责的拉扯感。"},
+  h:{title:"礼貌友好型",desc:"TA对谁都这样，别多想！TA本身就是温柔体贴、情商很高的性格，对待所有人都热情客气，这份善意不是独属于你的偏爱。"},
+  i:{title:"信号错位型",desc:"你的心动，TA根本没接收到。你释放了很多好感信号，但是TA感知迟钝，完全没有读懂你的心意，只以为你们是普通熟人。"},
+  j:{title:"时机未到型",desc:"有戏，但眼下不是时候。TA对你有好感，但是当下有别的重心（学业/工作/状态），暂时没有心思开启一段恋爱，不是对你没兴趣。"}
+};
+
+const questions = [
+  {q:"TA凌晨两点回你消息，你会怎么想",o:[
+    {t:"特意熬夜等我消息👉a",tag:"a"},
+    {t:"刚好没睡，顺便回我👉d",tag:"d"},
+    {t:"TA本来就是熬夜党，谁发都回👉h",tag:"h"},
+    {t:"凑巧而已，别脑补👉i",tag:"i"}
+  ]},
+  {q:"你们聊天记录里，谁更常先结尾",o:[
+    {t:"经常是TA收尾，舍不得结束对话👉b",tag:"b"},
+    {t:"你来我往轮流收尾👉a",tag:"a"},
+    {t:"每次都是我收尾，TA不爱多说👉f",tag:"f"},
+    {t:"TA习惯性不接最后一句👉g",tag:"g"}
+  ]},
+  {q:"TA发朋友圈，你大概多久点赞",o:[
+    {t:"看到就点，TA也总给你点赞👉a",tag:"a"},
+    {t:"悄悄刷到，偶尔点赞👉b",tag:"b"},
+    {t:"很少互动，互不点赞👉f",tag:"f"},
+    {t:"礼貌随手点一下，TA对所有人都这样👉h",tag:"h"}
+  ]},
+  {q:"TA约你吃饭，理由通常是哪种",o:[
+    {t:"专门找借口，只想单独见你👉b",tag:"b"},
+    {t:"顺路/刚好有空，随口邀约👉d",tag:"d"},
+    {t:"一群朋友一起聚餐👉c",tag:"c"},
+    {t:"客气客套，人情往来👉h",tag:"h"}
+  ]},
+  {q:"聊天时TA会不会主动找话题",o:[
+    {t:"源源不断主动找话题，怕冷场👉a",tag:"a"},
+    {t:"偶尔主动，你开启话题TA会认真接👉d",tag:"d"},
+    {t:"你不说话，对话直接沉默👉f",tag:"f"},
+    {t:"礼貌应付，简短回复👉h",tag:"h"}
+  ]},
+  {q:"TA会不会在朋友面前提起你",o:[
+    {t:"经常主动提起你的名字👉b",tag:"b"},
+    {t:"朋友聊到你才会说几句👉c",tag:"c"},
+    {t:"几乎不提你👉f",tag:"f"},
+    {t:"提起来也是普通朋友描述👉h",tag:"h"}
+  ]},
+  {q:"节日的时候，TA会给你祝福吗",o:[
+    {t:"专门单独发，不是群发模板👉a",tag:"a"},
+    {t:"群发消息，大家都收到👉h",tag:"h"},
+    {t:"偶尔想起才发👉d",tag:"d"},
+    {t:"从来不发祝福👉f",tag:"f"}
+  ]},
+  {q:"你和TA吐槽烦心事，TA的反应",o:[
+    {t:"耐心安抚，跟着你共情👉b",tag:"b"},
+    {t:"简单安慰几句，理性给建议👉d",tag:"d"},
+    {t:"快速转移话题👉g",tag:"g"},
+    {t:"礼貌附和一下👉h",tag:"h"}
+  ]},
+  {q:"TA会不会记住你随口说的小事",o:[
+    {t:"记得很清楚，后面还会提起👉b",tag:"b"},
+    {t:"偶尔记住一部分👉d",tag:"d"},
+    {t:"转头就忘，没放在心上👉i",tag:"i"},
+    {t:"记性本来就很差，所有人都这样👉h",tag:"h"}
+  ]},
+  {q:"面对面相处，TA会不会偷偷看你",o:[
+    {t:"经常对视、对视之后会害羞躲开👉a",tag:"a"},
+    {t:"不经意瞟你，被发现就假装镇定👉e",tag:"e"},
+    {t:"正常交谈看眼睛，没有多余打量👉h",tag:"h"},
+    {t:"很少看向你👉f",tag:"f"}
+  ]},
+  {q:"你主动找TA，TA一般多久回复",o:[
+    {t:"看到就回，不会晾很久👉a",tag:"a"},
+    {t:"有空才回，但是会认真解释刚才在忙👉d",tag:"d"},
+    {t:"很久才回，简单两句应付👉g",tag:"g"},
+    {t:"想起来才回，没有特殊对待👉h",tag:"h"}
+  ]},
+  {q:"TA会不会主动分享日常碎片给你",o:[
+    {t:"随手拍风景、琐事都发给你👉a",tag:"a"},
+    {t:"偶尔分享好玩的东西👉c",tag:"c"},
+    {t:"几乎不会主动分享👉f",tag:"f"},
+    {t:"发给很多好友，广撒网分享👉g",tag:"g"}
+  ]},
+  {q:"如果约TA单独出门，TA大概率",o:[
+    {t:"很开心，爽快答应👉a",tag:"a"},
+    {t:"犹豫一下，最后愿意赴约👉d",tag:"d"},
+    {t:"拉上别的朋友一起👉c",tag:"c"},
+    {t:"找理由委婉拒绝👉j",tag:"j"}
+  ]},
+  {q:"你们聊天，TA喜欢用哪种语气",o:[
+    {t:"带可爱表情，温柔软乎乎👉b",tag:"b"},
+    {t:"轻松随性，像好朋友唠嗑👉c",tag:"c"},
+    {t:"平淡客气，没有情绪起伏👉h",tag:"h"},
+    {t:"忽冷忽热，时热情时冷淡👉g",tag:"g"}
+  ]},
+  {q:"你开玩笑说喜欢TA，TA反应",o:[
+    {t:"慌张害羞，不敢接话👉e",tag:"e"},
+    {t:"顺着玩笑拉扯，不正面回答👉g",tag:"g"},
+    {t:"当成普通玩笑一笑而过👉f",tag:"f"},
+    {t:"认真告诉你现在不想恋爱👉j",tag:"j"}
+  ]},
+  {q:"TA会不会在意你和别的异性来往",o:[
+    {t:"会悄悄吃醋、情绪低落👉b",tag:"b"},
+    {t:"嘴上不在意，但是会旁敲侧击问👉e",tag:"e"},
+    {t:"完全无所谓，不关心👉f",tag:"f"},
+    {t:"礼貌听听，没有情绪波动👉h",tag:"h"}
+  ]},
+  {q:"遇到开心的好事，TA第一时间会告诉你吗",o:[
+    {t:"第一时间跑来和你分享👉a",tag:"a"},
+    {t:"和好朋友一圈都说，包含你👉c",tag:"c"},
+    {t:"很少主动和你说👉i",tag:"i"},
+    {t:"只和固定的小圈子分享👉f",tag:"f"}
+  ]},
+  {q:"TA会不会主动关心你的身体、作息",o:[
+    {t:"经常叮嘱你早点休息、好好吃饭👉b",tag:"b"},
+    {t:"你不舒服的时候才会关心👉d",tag:"d"},
+    {t:"客套式关心，谁都会说👉h",tag:"h"},
+    {t:"几乎不会过问👉f",tag:"f"}
+  ]},
+  {q:"你们吵架/闹小别扭之后，一般是谁先让步",o:[
+    {t:"TA会主动缓和气氛，不想失去联系👉a",tag:"a"},
+    {t:"等你冷静，之后好好沟通👉d",tag:"d"},
+    {t:"冷战，等着你主动👉g",tag:"g"},
+    {t:"觉得无所谓，顺其自然👉f",tag:"f"}
+  ]},
+  {q:"TA会不会记住你的喜好、忌口",o:[
+    {t:"点菜、买东西都会避开你不喜欢的👉b",tag:"b"},
+    {t:"你提醒一次之后会记住👉d",tag:"d"},
+    {t:"记不住，需要反复说👉i",tag:"i"},
+    {t:"对所有朋友都细心体贴👉h",tag:"h"}
+  ]},
+  {q:"TA愿意把你介绍给自己好朋友吗",o:[
+    {t:"很乐意带你认识TA的朋友👉a",tag:"a"},
+    {t:"合适场合才会带你见朋友👉c",tag:"c"},
+    {t:"不太想让圈子交叉👉j",tag:"j"},
+    {t:"只是普通朋友，没必要介绍👉f",tag:"f"}
+  ]},
+  {q:"TA会不会对你有专属昵称",o:[
+    {t:"只有对你才叫这个称呼👉b",tag:"b"},
+    {t:"顺口的外号，很多朋友都这么叫👉c",tag:"c"},
+    {t:"一直叫全名，很客气👉h",tag:"h"},
+    {t:"偶尔随便喊喊👉g",tag:"g"}
+  ]},
+  {q:"你低落难过的时候，TA愿意花时间陪你吗",o:[
+    {t:"放下手头事情，耐心陪着你👉a",tag:"a"},
+    {t:"有空就陪，忙的时候会说明👉d",tag:"d"},
+    {t:"简单安慰两句就结束👉h",tag:"h"},
+    {t:"回避负面情绪，快速转移话题👉g",tag:"g"}
+  ]},
+  {q:"TA会不会主动规划和你的下次见面",o:[
+    {t:"分开的时候就约好下次👉a",tag:"a"},
+    {t:"见面聊得好才会随口约👉c",tag:"c"},
+    {t:"你提出来，TA才会考虑👉d",tag:"d"},
+    {t:"没有主动邀约的想法👉f",tag:"f"}
+  ]},
+  {q:"TA刷到适合你的内容会转发给你吗",o:[
+    {t:"经常转发，觉得这个就是适合你的👉b",tag:"b"},
+    {t:"偶尔看到有意思的发给你👉c",tag:"c"},
+    {t:"转发群里，顺带发给你👉h",tag:"h"},
+    {t:"从来不会转发给你👉i",tag:"i"}
+  ]},
+  {q:"TA和你聊天，会不会回避恋爱话题",o:[
+    {t:"愿意和你聊感情观，畅想恋爱👉a",tag:"a"},
+    {t:"有点害羞，不太深入聊👉e",tag:"e"},
+    {t:"打太极、绕开不表态👉g",tag:"g"},
+    {t:"直接说现在不想谈恋爱👉j",tag:"j"}
+  ]},
+  {q:"一群人聚会，TA的目光更容易落在谁身上",o:[
+    {t:"不自觉看向你👉b",tag:"b"},
+    {t:"轮流照顾所有人氛围👉h",tag:"h"},
+    {t:"和熟人扎堆聊天👉f",tag:"f"},
+    {t:"你主动搭话才会关注你👉d",tag:"d"}
+  ]},
+  {q:"你给TA送小礼物，TA反应",o:[
+    {t:"很惊喜，好好珍惜还会回礼👉a",tag:"a"},
+    {t:"礼貌道谢，正常收下👉d",tag:"d"},
+    {t:"有点为难，不想欠人情👉j",tag:"j"},
+    {t:"客气客套，转头就忘👉h",tag:"h"}
+  ]},
+  {q:"TA会不会主动问你的感情状态",o:[
+    {t:"好奇你有没有喜欢的人👉b",tag:"b"},
+    {t:"闲聊顺带问一句👉c",tag:"c"},
+    {t:"别人聊到才跟着听听👉h",tag:"h"},
+    {t:"完全不关心你的感情👉f",tag:"f"}
+  ]},
+  {q:"你们单独相处的时候，氛围是",o:[
+    {t:"甜甜的安静，一点不尴尬👉a",tag:"a"},
+    {t:"轻松像好朋友，自在舒服👉c",tag:"c"},
+    {t:"淡淡的，有点拘谨👉d",tag:"d"},
+    {t:"客气疏离，礼貌保持距离👉h",tag:"h"}
+  ]},
+  {q:"TA会不会刻意制造和你偶遇的机会",o:[
+    {t:"会，经常巧合碰到👉b",tag:"b"},
+    {t:"纯巧合，没有刻意安排👉i",tag:"i"},
+    {t:"集体场合碰到很正常👉c",tag:"c"},
+    {t:"不会刻意靠近你👉f",tag:"f"}
+  ]},
+  {q:"整体感受，TA对你的态度是稳定还是忽冷忽热",o:[
+    {t:"一直稳定温柔，偏爱很明显👉a",tag:"a"},
+    {t:"稳定友好，对大家都一样👉h",tag:"h"},
+    {t:"忽冷忽热，捉摸不定👉g",tag:"g"},
+    {t:"慢慢升温，循序渐进👉d",tag:"d"}
+  ]}
+];
+
+let current = 0;
+let answers = Array(questions.length).fill(null);
+let score = {a:0,b:0,c:0,d:0,e:0,f:0,g:0,h:0,i:0,j:0};
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function startQuiz(){
+  current=0;
+  answers.fill(null);
+  score={a:0,b:0,c:0,d:0,e:0,f:0,g:0,h:0,i:0,j:0};
+  renderQ();
+  showPage('page-quiz');
+}
+function renderQ(){
+  const q = questions[current];
+  document.getElementById('qnum').innerText = `第 ${current+1} / ${questions.length} 题`;
+  document.getElementById('qtext').innerText = q.q;
+  const wrap = document.getElementById('opts-wrap');
+  wrap.innerHTML = '';
+  q.o.forEach((opt,idx)=>{
+    const div = document.createElement('div');
+    div.className = 'opt' + (answers[current]===idx ? ' selected':'');
+    div.innerText = opt.t;
+    div.onclick = ()=>{
+      answers[current]=idx;
+      renderQ();
+    }
+    wrap.appendChild(div);
+  })
+  document.getElementById('bar').style.width = ((current+1)/questions.length*100)+'%';
+  document.getElementById('prev').style.visibility = current===0 ? 'hidden':'visible';
+}
+function prevQuestion(){
+  if(current>0){current--;renderQ();}
+}
+function nextQuestion(){
+  if(answers[current]==null){alert("请选择一个答案哦");return;}
+  if(current < questions.length-1){
+    current++;renderQ();
+  }else{
+    calcResult();
+  }
+}
+function calcResult(){
+  score={a:0,b:0,c:0,d:0,e:0,f:0,g:0,h:0,i:0,j:0};
+  for(let i=0;i<questions.length;i++){
+    const selIdx = answers[i];
+    const tag = questions[i].o[selIdx].tag;
+    score[tag]++;
+  }
+  let maxTag = 'a';
+  let maxVal = 0;
+  for(let k in score){
+    if(score[k]>maxVal){maxVal=score[k];maxTag=k;}
+  }
+  const r = resultMap[maxTag];
+  document.getElementById('res-title').innerText = r.title;
+  document.getElementById('res-desc').innerText = r.desc;
+  showPage('page-result');
+}
+function resetAll(){
+  showPage('page-home');
+}
+</script>
+</body>
+</html>
